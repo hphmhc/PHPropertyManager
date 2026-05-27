@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PH Estate Manager</title>
+  <link rel="icon" type="image/png" href="ph-logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="loginView" class="login-screen hidden">
+      <div class="login-card">
+        <div class="brand-mark logo-mark"><img src="ph-logo.png" alt="PH logo" /></div>
+        <h1>PH Estate Manager</h1>
+        <p class="muted">Real estate records, projects, clients and backups.</p>
+
+        <div class="login-tabs hidden" role="tablist" aria-label="Login role">
+          <button id="roleUserBtn" class="role-tab active" type="button" data-role="user">User</button>
+          <button id="roleAdminBtn" class="role-tab" type="button" data-role="admin">Admin</button>
+        </div>
+
+        <label>Username or Email</label>
+        <input id="loginUsername" type="text" autocomplete="username" placeholder="Enter username or email" />
+
+        <label>Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" />
+
+        <p id="loginError" class="error hidden">Incorrect username/email or password.</p>
+        <button id="loginBtn" class="btn primary full" type="button">Sign in</button>
+
+        <div class="credentials-note">
+          Online login: use your Supabase username or email and password.
+        </div>
+      </div>
+    </section>
+
+    <section id="mainView" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-mark small logo-mark"><img src="ph-logo.png" alt="PH logo" /></div>
+          <div><strong>PH Estate</strong><span>Manager</span></div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-page="dashboard">Dashboard</button>
+          <button class="nav-item" data-page="clients">Clients</button>
+          <button class="nav-item" data-page="plots">Plots</button>
+          <button class="nav-item" data-page="documents">Documents</button>
+          <button class="nav-item" data-page="reports">Reports</button>
+          <button class="nav-item admin-only hidden" data-page="sellers">Sellers</button>
+          <button class="nav-item admin-only hidden" data-page="users">Users</button>
+        </nav>
+
+        <div class="sidebar-user">
+          <div><span id="activeUsername">-</span><small id="activeRole">-</small></div>
+          <button id="logoutBtn" class="btn ghost small-btn" type="button">Logout</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section id="page-dashboard" class="page active">
+          <div class="page-header">
+            <div><h2>Dashboard</h2><p class="muted">Overview of clients, plots, values and quick actions.</p></div>
+            <div class="header-actions">
+              <button id="restoreBackupBtn" class="btn secondary" type="button">Restore Backup</button>
+              <button id="clearAllDataBtn" class="btn danger" type="button">Clear All Data</button>
+              <button id="downloadBackupBtn" class="btn primary" type="button">Download Backup</button>
+              <input id="restoreBackupInput" type="file" accept="application/json,.json" class="hidden" />
+            </div>
+          </div>
+          <div id="statsGrid" class="stats-grid"></div>
+          <div class="panel">
+            <div class="panel-header">
+              <div><h3>Client & Plot Overview</h3><p class="muted">Search by client name, CNIC or phone. Payments and dues pages will be connected in the next stages.</p></div>
+              <button class="btn secondary" data-go-page="clients" type="button">Open Clients</button>
+            </div>
+            <div class="toolbar single-row">
+              <input id="dashboardSearchInput" type="search" placeholder="Search dashboard by name, CNIC or phone..." />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>CNIC</th><th>Plots</th><th>Received</th><th>Remaining</th><th>Construction</th><th class="actions-col">Actions</th></tr></thead>
+                <tbody id="dashboardClientsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="page-clients" class="page">
+          <div class="page-header">
+            <div><h2>Clients</h2><p class="muted">Add, search, filter, view, edit and delete client records.</p></div>
+            <button id="addClientBtn" class="btn primary" type="button">Add Client</button>
+          </div>
+          <div class="toolbar">
+            <input id="clientSearchInput" type="search" placeholder="Search by name, CNIC or phone..." />
+            <select id="clientConstructionFilter"><option value="all">All construction status</option><option value="plot">Plot</option><option value="constructed">Constructed</option></select>
+            <select id="clientPaymentFilter"><option value="all">All payment status</option><option value="fully_paid">Fully Paid</option><option value="partially_paid">Partially Paid</option><option value="to_be_paid">To Be Paid</option></select>
+          </div>
+          <div class="panel"><div class="table-wrap"><table>
+            <thead><tr><th>Client Name</th><th>Father</th><th>CNIC</th><th>Phone</th><th>Address</th><th>Plots</th><th>Size</th><th>Type</th><th>Payment</th><th>Construction</th><th class="actions-col">Actions</th></tr></thead>
+            <tbody id="clientsTableBody"></tbody>
+          </table></div></div>
+        </section>
+
+        <section id="page-plots" class="page">
+          <div class="page-header">
+            <div><h2>Plots</h2><p class="muted">Manage available and sold plots. Payment status is only used when a plot is sold/linked to a client.</p></div>
+            <button id="addPlotBtn" class="btn primary" type="button">Add Plot</button>
+          </div>
+          <div class="toolbar">
+            <input id="plotSearchInput" type="search" placeholder="Search by plot number, intikal number, project or client..." />
+            <input id="plotSizeSearchInput" type="search" placeholder="Search size in marla, e.g. 5" />
+            <select id="plotAvailabilityFilter"><option value="all">All plots</option><option value="available">Available plots</option><option value="sold">Sold plots</option></select>
+          </div>
+          <div class="panel"><div class="table-wrap"><table>
+            <thead><tr><th>Plot #</th><th>Project</th><th>Intikal</th><th>Size</th><th>Khasra #</th><th>Khatauni #</th><th>Transferred From</th><th>Type</th><th>Availability</th><th>Payment</th><th>Linked Client</th><th>Price</th><th class="actions-col">Actions</th></tr></thead>
+            <tbody id="plotsTableBody"></tbody>
+          </table></div></div>
+        </section>
+
+        <section id="page-payments" class="page">
+          <div class="page-header">
+            <div>
+              <h2 id="paymentsPageTitle">Payments</h2>
+              <p class="muted" id="paymentsPageSubtitle">Record cash payments and exchange payments for a selected client plot.</p>
+            </div>
+            <div class="header-actions">
+              <button id="backToDashboardFromPayments" class="btn secondary" type="button">Back to Dashboard</button>
+              <button id="addCashPaymentBtn" class="btn primary" type="button">Add Payment</button>
+              <button id="addExchangePaymentBtn" class="btn secondary" type="button">Add Exchange</button>
+            </div>
+          </div>
+
+          <div class="panel payments-control-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Select Plot</h3>
+                <p class="muted">If a client owns more than one sold plot, choose the plot whose payments you want to manage.</p>
+              </div>
+              <select id="paymentPlotSelect"></select>
+            </div>
+          </div>
+
+          <div id="paymentSummaryGrid" class="stats-grid compact-stats"></div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div><h3>Payment History</h3><p class="muted">Cash payments and exchange values are shown separately but both reduce the remaining amount.</p></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Type</th><th>Amount / Value</th><th>Date</th><th>Exchange Item</th><th>Note</th><th class="actions-col">Actions</th></tr></thead>
+                <tbody id="paymentsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="page-dues" class="page">
+          <div class="page-header">
+            <div>
+              <h2 id="duesPageTitle">Dues</h2>
+              <p class="muted" id="duesPageSubtitle">Track security fees and other dues for a selected client plot.</p>
+            </div>
+            <div class="header-actions">
+              <button id="backToDashboardFromDues" class="btn secondary" type="button">Back to Dashboard</button>
+              <button id="addDueBtn" class="btn primary" type="button">Add Due</button>
+            </div>
+          </div>
+
+          <div class="panel payments-control-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Select Plot</h3>
+                <p class="muted">If a client owns more than one sold plot, choose the plot whose dues you want to manage.</p>
+              </div>
+              <select id="duePlotSelect"></select>
+            </div>
+          </div>
+
+          <div id="duesSummaryGrid" class="stats-grid compact-stats"></div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div><h3>Due History</h3><p class="muted">Security, boundary wall, gas pipeline and other dues are tracked plot by plot.</p></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Paid</th><th>Type</th><th>Original Amount</th><th>Discount/Waiver</th><th>Remaining</th><th>Date / Month</th><th>Status</th><th class="actions-col">Actions</th></tr></thead>
+                <tbody id="duesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <section id="page-documents" class="page">
+          <div class="page-header">
+            <div><h2>Documents</h2><p class="muted">Generate editable sale agreements and receipts using client, plot and seller records.</p></div>
+            <div class="header-actions">
+              <button id="generateDocumentBtn" class="btn primary" type="button">Generate Preview</button>
+              <button id="printDocumentBtn" class="btn secondary" type="button">Print</button>
+              <button id="downloadDocumentBtn" class="btn secondary" type="button">Download Word</button>
+            </div>
+          </div>
+
+          <div class="documents-layout">
+            <div class="panel document-controls">
+              <div class="panel-header"><div><h3>Document Setup</h3><p class="muted">Select a template, client plot, seller and witnesses.</p></div></div>
+              <div class="document-form">
+                <label class="doc-field doc-common">Template
+                  <select id="docTemplateSelect">
+                    <option value="sale_agreement">Sale Agreement / اقرار نامہ</option>
+                    <option value="receipt">Payment Receipt / رسید</option>
+                  </select>
+                </label>
+                <label class="doc-field doc-common">Client + Plot
+                  <select id="docClientPlotSelect"></select>
+                  <small class="hint">Clients are listed with plot numbers so you choose the correct plot.</small>
+                </label>
+                <label class="doc-field doc-agreement-only">Seller
+                  <select id="docSellerSelect"></select>
+                </label>
+                <label class="doc-field doc-receipt-only">Select Payment
+                  <select id="docPaymentSelect"><option value="">Select a saved payment</option></select>
+                  <small class="hint">Receipts use payments already saved in the Payments page.</small>
+                </label>
+                <label class="doc-field doc-receipt-only">Place of Payment / بمقام
+                  <input id="docPaymentPlace" type="text" placeholder="مثلاً: بارہ کہو اسلام آباد" />
+                </label>
+                <label class="doc-field doc-witness-field">Witness 1 Name
+                  <input id="docWitness1Name" type="text" placeholder="Witness name" />
+                </label>
+                <label class="doc-field doc-witness-field">Witness 1 CNIC
+                  <input id="docWitness1Cnic" type="text" maxlength="15" placeholder="00000-0000000-0" />
+                </label>
+                <label class="doc-field doc-witness-field">Witness 2 Name
+                  <input id="docWitness2Name" type="text" placeholder="Witness name" />
+                </label>
+                <label class="doc-field doc-witness-field">Witness 2 CNIC
+                  <input id="docWitness2Cnic" type="text" maxlength="15" placeholder="00000-0000000-0" />
+                </label>
+                <label class="doc-field doc-agreement-only">Due Date for Remaining Amount
+                  <input id="docRemainingDueDate" type="date" />
+                </label>
+                <div class="hint-box full">The preview is editable. After generating, you can click inside the paper and change text before printing or downloading.</div>
+              </div>
+            </div>
+
+            <div class="panel document-preview-panel">
+              <div class="panel-header"><div><h3>Editable Preview</h3><p class="muted">This area is designed to look like a Word document page.</p></div></div>
+              <div id="documentPreview" class="document-paper" contenteditable="true">
+                Select a client plot and seller, then click Generate Preview.
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="page-reports" class="page">
+          <div class="page-header">
+            <div><h2>Reports</h2><p class="muted">Create Excel-compatible reports with selected and ordered columns.</p></div>
+            <div class="header-actions">
+              <button id="previewReportBtn" class="btn secondary" type="button">Preview Report</button>
+              <button id="exportReportBtn" class="btn primary" type="button">Download Excel</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <div><h3>Report Setup</h3><p class="muted">Choose a report, tick the columns you want, then drag columns up or down to arrange export order.</p></div>
+            </div>
+            <div class="toolbar reports-toolbar">
+              <select id="reportTypeSelect">
+                <option value="master">Master File</option>
+                <option value="payments">Payments</option>
+                <option value="dues">Dues</option>
+                <option value="plots">Plots by Project</option>
+              </select>
+              <input id="reportSearchInput" type="search" placeholder="Optional filter by name, CNIC, plot, project..." />
+            </div>
+            <div id="reportColumnsList" class="report-columns-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div><h3>Preview</h3><p class="muted" id="reportPreviewNote">Preview shows the selected report before download.</p></div></div>
+            <div class="table-wrap"><table id="reportPreviewTable"><thead></thead><tbody></tbody></table></div>
+          </div>
+        </section>
+        <section id="page-sellers" class="page">
+          <div class="page-header">
+            <div><h2>Sellers</h2><p class="muted">Admin-only seller records used later in document generation.</p></div>
+            <button id="addSellerBtn" class="btn primary" type="button">Add Seller</button>
+          </div>
+          <div class="toolbar single-row">
+            <input id="sellerSearchInput" type="search" placeholder="Search sellers by name, CNIC or phone..." />
+          </div>
+          <div class="panel"><div class="table-wrap"><table>
+            <thead><tr><th>Name</th><th>Father</th><th>CNIC</th><th>Phone</th><th>Address</th><th class="actions-col">Actions</th></tr></thead>
+            <tbody id="sellersTableBody"></tbody>
+          </table></div></div>
+        </section>
+        <section id="page-users" class="page">
+          <div class="page-header">
+            <div><h2>Users</h2><p class="muted">Admin-only user management. Add, edit or delete app users.</p></div>
+            <button id="addUserBtn" class="btn primary" type="button">Add User</button>
+          </div>
+          <div class="toolbar single-row">
+            <select id="userRoleFilter">
+              <option value="all">All roles</option>
+              <option value="admin">Admins</option>
+              <option value="user">Users</option>
+            </select>
+          </div>
+          <div class="panel"><div class="table-wrap"><table>
+            <thead><tr><th>Username</th><th>Role</th><th>Created</th><th class="actions-col">Actions</th></tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table></div></div>
+        </section>
+      </main>
+    </section>
+
+    <div id="clientModal" class="modal-overlay hidden">
+      <div class="modal large-modal">
+        <div class="modal-header"><div><h3 id="clientModalTitle">Add Client</h3><p class="muted">Fields are designed to remain flexible for database migration later.</p></div><button id="closeClientModalBtn" class="icon-btn" type="button">×</button></div>
+        <form id="clientForm" class="form-grid">
+          <input id="clientId" type="hidden" />
+          <div class="form-section full"><h4>Personal Information</h4></div>
+          <label>Name in English *<input id="clientNameEn" required type="text" placeholder="Client full name" /></label>
+          <label>Name in Urdu<div class="field-action"><input id="clientNameUr" class="urdu-input" type="text" placeholder="اردو نام" /><button class="btn mini" type="button" data-translate="clientNameEn:clientNameUr">Translate</button></div></label>
+          <label>Father's Name in English<input id="clientFatherEn" type="text" placeholder="Father's name" /></label>
+          <label>Father's Name in Urdu<div class="field-action"><input id="clientFatherUr" class="urdu-input" type="text" placeholder="والد کا نام" /><button class="btn mini" type="button" data-translate="clientFatherEn:clientFatherUr">Translate</button></div></label>
+          <label>CNIC<input id="clientCnic" type="text" maxlength="15" placeholder="00000-0000000-0" /></label>
+          <label>Phone Number<input id="clientPhone" type="text" maxlength="12" placeholder="0000-0000000" /></label>
+          <label class="full">Address in English<textarea id="clientAddressEn" rows="2" placeholder="House, street, city..."></textarea></label>
+          <label class="full">Address in Urdu<div class="field-action align-top"><textarea id="clientAddressUr" class="urdu-input" rows="2" placeholder="اردو پتہ"></textarea><button class="btn mini" type="button" data-translate="clientAddressEn:clientAddressUr">Translate</button></div></label>
+          <div class="form-section full"><h4>Assign Available Plot</h4></div>
+          <label>Project<div class="field-action"><select id="clientProject"></select><button id="addProjectBtn" class="btn mini" type="button">Add Project</button></div></label>
+          <label>Available Plot<select id="clientAssignedPlot"><option value="">No plot selected</option></select><small class="hint">Only available plots from the selected project appear here. Add or edit plot details from the Plots page.</small></label>
+          <div class="form-section full"><h4>Sale / Payment for Selected Plot</h4></div>
+          <label>Intikal Number<input id="clientIntikalNo" type="text" placeholder="Optional transfer/intikal number" /></label>
+          <label>Total Amount (PKR)<input id="clientTotalAmount" type="text" placeholder="0" /></label>
+          <label>Amount Received / Token (PKR)<input id="clientTokenAmount" type="text" placeholder="0" /></label>
+          <label class="check-card"><input id="clientFullyPaid" type="checkbox" /> <span>Mark selected plot as fully paid off</span></label>
+          <div class="full hint-box">If no plot is selected, only the client information will be saved. Plot details are controlled from the Plots page.</div>
+          <label>Deal Date<input id="clientDealDate" type="date" /></label>
+          <label class="full">Notes<textarea id="clientNotes" rows="3" placeholder="Any notes about this client or sale"></textarea></label>
+          <div class="modal-actions full"><button class="btn secondary" type="button" id="cancelClientBtn">Cancel</button><button class="btn primary" type="submit">Save Client</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="viewClientModal" class="modal-overlay hidden">
+      <div class="modal"><div class="modal-header"><h3 id="viewClientTitle">Client Details</h3><button id="closeViewClientBtn" class="icon-btn" type="button">×</button></div><div id="viewClientBody" class="details-grid"></div></div>
+    </div>
+
+    <div id="plotModal" class="modal-overlay hidden">
+      <div class="modal large-modal">
+        <div class="modal-header"><div><h3 id="plotModalTitle">Add Plot</h3><p class="muted">Availability is separate from payment status. Available/Sold belongs to plots; Fully/Partial/To Be Paid belongs to sold plot payment.</p></div><button id="closePlotModalBtn" class="icon-btn" type="button">×</button></div>
+        <form id="plotForm" class="form-grid">
+          <input id="plotId" type="hidden" />
+          <div class="form-section full"><h4>Plot Information</h4></div>
+          <label>Project *<div class="field-action"><select id="plotProject" required></select><button id="addProjectFromPlotBtn" class="btn mini" type="button">Add Project</button></div></label>
+          <label>Plot Number *<input id="plotNo" required type="text" placeholder="B-44" /></label>
+          <label>Intikal Number<input id="plotIntikalNo" type="text" placeholder="Optional" /></label>
+          <label>Plot Size<div class="inline-fields"><input id="plotSize" type="number" min="0" step="0.01" placeholder="Size" /><select id="plotUnit"><option value="Kanal">Kanal</option><option value="Marla">Marla</option><option value="Yards">Yards</option></select></div><small id="plotSizePreview" class="hint"></small></label>
+          <label>Khasra Number<input id="plotKhasraNo" type="text" placeholder="e.g. 125/7" /></label>
+          <label>Khatauni Number<input id="plotKhatauniNo" type="text" placeholder="e.g. 48" /></label>
+          <label class="full">Transferred From<input id="plotTransferredFrom" type="text" placeholder="Previous owner / transfer source" /></label>
+          <label>Property Type<select id="plotPropertyType"><option value="Residential">Residential</option><option value="Commercial">Commercial</option></select></label>
+          <label>Construction Status<select id="plotConstructionStatus"><option value="plot">Plot</option><option value="constructed">Constructed</option></select></label>
+          <label>Availability<select id="plotAvailabilityStatus"><option value="available">Available</option><option value="sold">Sold</option></select></label>
+          <div id="soldPlotFields" class="form-subsection full">
+            <div class="form-section full"><h4>Sold Plot Payment Information</h4></div>
+            <label>Linked Client<select id="plotLinkedClient"><option value="">No linked client</option></select></label>
+            <label>Price / Total Amount (PKR)<input id="plotPrice" type="text" placeholder="0" /></label>
+            <label>Amount Received / Token (PKR)<input id="plotTokenAmount" type="text" placeholder="0" /></label>
+            <label class="check-card"><input id="plotFullyPaid" type="checkbox" /> <span>Mark this sold plot as fully paid off</span></label>
+            <div class="full hint-box">Payment status is calculated automatically: no amount received = To Be Paid, some amount received = Partially Paid, fully paid checkbox = Fully Paid.</div>
+          </div>
+          <label class="full">Notes<textarea id="plotNotes" rows="3" placeholder="Any notes about this plot"></textarea></label>
+          <div class="modal-actions full"><button class="btn secondary" type="button" id="cancelPlotBtn">Cancel</button><button class="btn primary" type="submit">Save Plot</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="paymentModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div><h3 id="paymentModalTitle">Add Payment</h3><p class="muted">Payments are linked to the selected client and plot.</p></div>
+          <button id="closePaymentModalBtn" class="icon-btn" type="button">×</button>
+        </div>
+        <form id="paymentForm" class="form-grid">
+          <input id="paymentId" type="hidden" />
+          <input id="paymentType" type="hidden" value="cash" />
+          <label>Amount / Value (PKR) *<input id="paymentAmount" required type="text" placeholder="0" /></label>
+          <label>Date *<input id="paymentDate" required type="date" /></label>
+          <label id="exchangeItemLabel" class="full hidden">Exchange Item<input id="paymentExchangeItem" type="text" placeholder="Car, plot, vehicle, other property..." /></label>
+          <label class="full">Note<textarea id="paymentNote" rows="3" placeholder="Optional note"></textarea></label>
+          <div class="modal-actions full"><button class="btn secondary" type="button" id="cancelPaymentBtn">Cancel</button><button class="btn primary" type="submit">Save Payment</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="dueModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div><h3 id="dueModalTitle">Add Due</h3><p class="muted">Dues are linked to the selected client and plot.</p></div>
+          <button id="closeDueModalBtn" class="icon-btn" type="button">×</button>
+        </div>
+        <form id="dueForm" class="form-grid">
+          <input id="dueId" type="hidden" />
+          <label>Due Type *<input id="dueType" required type="text" placeholder="Security, Boundary Wall, Gas Pipeline..." /></label>
+          <label>Date / Month *<input id="dueDate" required type="month" /></label>
+          <label>Amount (PKR) *<input id="dueAmount" required type="text" placeholder="0" /></label>
+          <label>Discount / Waiver (PKR)<input id="dueDiscount" type="text" placeholder="0" /></label>
+          <label class="check-card full"><input id="dueWaived" type="checkbox" /> <span>Waive this due completely</span></label>
+          <label class="full">Note<textarea id="dueNote" rows="3" placeholder="Optional note"></textarea></label>
+          <div class="modal-actions full"><button class="btn secondary" type="button" id="cancelDueBtn">Cancel</button><button class="btn primary" type="submit">Save Due</button></div>
+        </form>
+      </div>
+    </div>
+
+
+    <div id="sellerModal" class="modal-overlay hidden">
+      <div class="modal large-modal">
+        <div class="modal-header"><div><h3 id="sellerModalTitle">Add Seller</h3><p class="muted">Only admins can add, edit or delete sellers.</p></div><button id="closeSellerModalBtn" class="icon-btn" type="button">×</button></div>
+        <form id="sellerForm" class="form-grid">
+          <input id="sellerId" type="hidden" />
+          <label>Name in English *<input id="sellerNameEn" required type="text" placeholder="Seller full name" /></label>
+          <label>Name in Urdu<div class="field-action"><input id="sellerNameUr" class="urdu-input" type="text" placeholder="اردو نام" /><button class="btn mini" type="button" data-translate="sellerNameEn:sellerNameUr">Translate</button></div></label>
+          <label>Father's Name in English<input id="sellerFatherEn" type="text" placeholder="Father's name" /></label>
+          <label>Father's Name in Urdu<div class="field-action"><input id="sellerFatherUr" class="urdu-input" type="text" placeholder="والد کا نام" /><button class="btn mini" type="button" data-translate="sellerFatherEn:sellerFatherUr">Translate</button></div></label>
+          <label>CNIC<input id="sellerCnic" type="text" maxlength="15" placeholder="00000-0000000-0" /></label>
+          <label>Phone Number<input id="sellerPhone" type="text" maxlength="12" placeholder="0000-0000000" /></label>
+          <label class="full">Address in English<textarea id="sellerAddressEn" rows="2" placeholder="House, street, city..."></textarea></label>
+          <label class="full">Address in Urdu<div class="field-action align-top"><textarea id="sellerAddressUr" class="urdu-input" rows="2" placeholder="اردو پتہ"></textarea><button class="btn mini" type="button" data-translate="sellerAddressEn:sellerAddressUr">Translate</button></div></label>
+          <div class="modal-actions full"><button class="btn secondary" type="button" id="cancelSellerBtn">Cancel</button><button class="btn primary" type="submit">Save Seller</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="viewSellerModal" class="modal-overlay hidden">
+      <div class="modal"><div class="modal-header"><h3 id="viewSellerTitle">Seller Details</h3><button id="closeViewSellerBtn" class="icon-btn" type="button">×</button></div><div id="viewSellerBody" class="details-grid"></div></div>
+    </div>
+
+    <div id="userModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header"><div><h3 id="userModalTitle">Add User</h3><p class="muted">Only admins can manage user accounts.</p></div><button id="closeUserModalBtn" class="icon-btn" type="button">×</button></div>
+        <form id="userForm" class="form-grid">
+          <input id="userId" type="hidden" />
+          <label>Username *<input id="userUsername" required type="text" placeholder="username" autocomplete="off" /></label>
+          <label>Password *<input id="userPassword" type="password" placeholder="Enter password" autocomplete="new-password" /></label>
+          <label>Role *<select id="userRole"><option value="user">User</option><option value="admin">Admin</option></select></label>
+          <div class="full hint-box">When editing an existing user, leave the password blank if you do not want to change it.</div>
+          <div class="modal-actions full"><button class="btn secondary" type="button" id="cancelUserBtn">Cancel</button><button class="btn primary" type="submit">Save User</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="viewPlotModal" class="modal-overlay hidden">
+      <div class="modal"><div class="modal-header"><h3 id="viewPlotTitle">Plot Details</h3><button id="closeViewPlotBtn" class="icon-btn" type="button">×</button></div><div id="viewPlotBody" class="details-grid"></div></div>
+    </div>
+
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="storage.js"></script><script src="exports.js"></script><script src="documents.js"></script><script src="app.js"></script>
+</body>
+</html>

@@ -128,12 +128,12 @@ const HPHSupabase={
       const {error}=await c.from(table).delete().neq('id','00000000-0000-0000-0000-000000000000');
       if(error)throw error;
     }
-    if(clean.projects.length){const {error}=await c.from('projects').upsert(clean.projects.filter(p=>/^[0-9a-f-]{36}$/i.test(p.id)).map(projectToRow));if(error)throw error;}
-    if(clean.clients.length){const {error}=await c.from('clients').insert(clean.clients.map(clientToRow));if(error)throw error;}
-    if(clean.plots.length){const {error}=await c.from('plots').insert(clean.plots.map(plotToRow));if(error)throw error;}
-    if(clean.sellers.length){const {error}=await c.from('sellers').insert(clean.sellers.map(sellerToRow));if(error)throw error;}
-    if(safePayments.length){const {error}=await c.from('payments').insert(safePayments.map(paymentToRow));if(error)throw error;}
-    if(safeDues.length){const {error}=await c.from('dues').insert(safeDues.map(dueToRow));if(error)throw error;}
+    if(clean.projects.length){const {error}=await c.from('projects').upsert(hphUniqueById(clean.projects.filter(p=>/^[0-9a-f-]{36}$/i.test(p.id))).map(projectToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.clients.length){const {error}=await c.from('clients').upsert(hphUniqueById(clean.clients).map(clientToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.plots.length){const {error}=await c.from('plots').upsert(hphUniqueById(clean.plots).map(plotToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.sellers.length){const {error}=await c.from('sellers').upsert(hphUniqueById(clean.sellers).map(sellerToRow),{onConflict:'id'});if(error)throw error;}
+    if(safePayments.length){const {error}=await c.from('payments').upsert(hphUniqueById(safePayments).map(paymentToRow),{onConflict:'id'});if(error)throw error;}
+    if(safeDues.length){const {error}=await c.from('dues').upsert(hphUniqueById(safeDues).map(dueToRow),{onConflict:'id'});if(error)throw error;}
     clean.payments=safePayments;
     clean.dues=safeDues;
     return clean;

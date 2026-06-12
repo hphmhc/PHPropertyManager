@@ -35,14 +35,6 @@ function paymentToRow(p){return {id:p.id,client_id:p.clientId,plot_id:p.plotId,t
 function dueToRow(d){return {id:d.id,client_id:d.clientId,plot_id:d.plotId,type:d.type||"",amount:Number(d.amount||0),discount_amount:Number(d.discountAmount||0),date:d.date||"",paid:!!d.paid,paid_date:d.paidDate||null,status:d.status||"unpaid",note:d.note||"",created_at:hphIso(d.createdAt),updated_at:hphIso(d.updatedAt)}}
 
 
-function hphUniqueById(items){
-  const map = new Map();
-  (items || []).forEach(item => {
-    if(item && item.id) map.set(item.id, item);
-  });
-  return Array.from(map.values());
-}
-
 const HPHSupabase={
   client:null,
   ready:false,
@@ -128,6 +120,11 @@ const HPHSupabase={
     await this.ensureReady();
     window.HPH_SUPABASE_ACTIVE=true;
     const clean=HPHStorage.normalize(data);
+    const uniqueById=(items)=>{
+      const map=new Map();
+      (items||[]).forEach(item=>{if(item&&item.id)map.set(item.id,item)});
+      return Array.from(map.values());
+    };
     const validClientIds=new Set((clean.clients||[]).map(client=>client.id));
     const validPlotIds=new Set((clean.plots||[]).map(plot=>plot.id));
     const safePayments=(clean.payments||[]).filter(payment=>validClientIds.has(payment.clientId)&&validPlotIds.has(payment.plotId));
@@ -137,12 +134,12 @@ const HPHSupabase={
       const {error}=await c.from(table).delete().neq('id','00000000-0000-0000-0000-000000000000');
       if(error)throw error;
     }
-    if(clean.projects.length){const {error}=await c.from('projects').upsert(hphUniqueById(clean.projects.filter(p=>/^[0-9a-f-]{36}$/i.test(p.id))).map(projectToRow),{onConflict:'id'});if(error)throw error;}
-    if(clean.clients.length){const {error}=await c.from('clients').upsert(hphUniqueById(clean.clients).map(clientToRow),{onConflict:'id'});if(error)throw error;}
-    if(clean.plots.length){const {error}=await c.from('plots').upsert(hphUniqueById(clean.plots).map(plotToRow),{onConflict:'id'});if(error)throw error;}
-    if(clean.sellers.length){const {error}=await c.from('sellers').upsert(hphUniqueById(clean.sellers).map(sellerToRow),{onConflict:'id'});if(error)throw error;}
-    if(safePayments.length){const {error}=await c.from('payments').upsert(hphUniqueById(safePayments).map(paymentToRow),{onConflict:'id'});if(error)throw error;}
-    if(safeDues.length){const {error}=await c.from('dues').upsert(hphUniqueById(safeDues).map(dueToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.projects.length){const {error}=await c.from('projects').upsert(uniqueById(clean.projects.filter(p=>/^[0-9a-f-]{36}$/i.test(p.id))).map(projectToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.clients.length){const {error}=await c.from('clients').upsert(uniqueById(clean.clients).map(clientToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.plots.length){const {error}=await c.from('plots').upsert(uniqueById(clean.plots).map(plotToRow),{onConflict:'id'});if(error)throw error;}
+    if(clean.sellers.length){const {error}=await c.from('sellers').upsert(uniqueById(clean.sellers).map(sellerToRow),{onConflict:'id'});if(error)throw error;}
+    if(safePayments.length){const {error}=await c.from('payments').upsert(uniqueById(safePayments).map(paymentToRow),{onConflict:'id'});if(error)throw error;}
+    if(safeDues.length){const {error}=await c.from('dues').upsert(uniqueById(safeDues).map(dueToRow),{onConflict:'id'});if(error)throw error;}
     clean.payments=safePayments;
     clean.dues=safeDues;
     return clean;

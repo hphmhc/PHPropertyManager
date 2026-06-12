@@ -1,4 +1,4 @@
-const state={data:HPHStorage.load(),currentUser:null,selectedRole:"user",activePage:"dashboard",activePaymentClientId:null,activePaymentPlotId:null,activeDueClientId:null,activeDuePlotId:null,onlineMode:false,remoteSaveTimer:null,remoteSaveInFlight:false,remoteSaveQueued:false};
+const state={data:HPHStorage.load(),currentUser:null,selectedRole:"user",activePage:"dashboard",pageHistory:["dashboard"],isHandlingPopState:false,isNavigatingFromPop:false,activePaymentClientId:null,activePaymentPlotId:null,activeDueClientId:null,activeDuePlotId:null,onlineMode:false,remoteSaveTimer:null,remoteSaveInFlight:false,remoteSaveQueued:false};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>Array.from(document.querySelectorAll(selector));
 function uid(prefix="id"){return window.HPH_USE_SUPABASE&&window.crypto?.randomUUID?window.crypto.randomUUID():`${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`}
@@ -147,13 +147,74 @@ async function login(){
 
   const user=state.data.users.find(u=>u.username===username&&u.password===password&&u.role===state.selectedRole);
   if(!user){$("#loginError").textContent="Incorrect username/email or password.";$("#loginError").classList.remove("hidden");return}
-  $("#loginError").classList.add("hidden");state.onlineMode=false;state.currentUser=user;$("#loginView").classList.add("hidden");$("#mainView").classList.remove("hidden");$("#activeUsername").textContent=user.username;$("#activeRole").textContent=user.role;$$('.admin-only').forEach(item=>item.classList.toggle("hidden",user.role!=="admin"));goPage("dashboard");saveSession()
+  $("#loginError").classList.add("hidden");state.onlineMode=false;state.currentUser=user;$("#loginView").classList.add("hidden");$("#mainView").classList.remove("hidden");$("#activeUsername").textContent=user.username;$("#activeRole").textContent=user.role;$$('.admin-only').forEach(item=>item.classList.toggle("hidden",user.role!=="admin"));setupBrowserBackHandling();goPage("dashboard");saveSession()
 }
 async function logout(){
   if(state.onlineMode&&window.HPHSupabase?.ready){try{await HPHSupabase.signOut()}catch(e){console.warn(e)}}
   state.currentUser=null;state.onlineMode=false;clearSession();sessionStorage.removeItem("hphActivePage");$("#mainView").classList.add("hidden");$("#loginView").classList.remove("hidden");$("#loginPassword").value=""
 }
-function goPage(page){state.activePage=page;sessionStorage.setItem("hphActivePage",page);$$('.page').forEach(section=>section.classList.remove("active"));$(`#page-${page}`)?.classList.add("active");$$('.nav-item').forEach(btn=>btn.classList.toggle("active",btn.dataset.page===page));if(page==="dashboard")renderDashboard();if(page==="clients")renderClients();if(page==="plots")renderPlots();if(page==="payments")renderPaymentsPage();if(page==="dues")renderDuesPage();if(page==="documents")renderDocumentsPage();if(page==="reports")renderReports();if(page==="sellers")renderSellers();if(page==="users")renderUsers();if(state.currentUser)saveSession()}
+function renderActivePage(page){
+  $$('.page').forEach(section=>section.classList.remove("active"));
+  $(`#page-${page}`)?.classList.add("active");
+  $$('.nav-item').forEach(btn=>btn.classList.toggle("active",btn.dataset.page===page));
+  if(page==="dashboard")renderDashboard();
+  if(page==="clients")renderClients();
+  if(page==="plots")renderPlots();
+  if(page==="payments")renderPaymentsPage();
+  if(page==="dues")renderDuesPage();
+  if(page==="documents")renderDocumentsPage();
+  if(page==="reports")renderReports();
+  if(page==="sellers")renderSellers();
+  if(page==="users")renderUsers();
+  if(page==="import" && typeof renderImportPreview==="function")renderImportPreview();
+}
+function goPage(page, options={}){
+  const previous=state.activePage||"dashboard";
+  state.activePage=page;
+  sessionStorage.setItem("hphActivePage",page);
+  if(!options.fromBack && previous!==page){
+    state.pageHistory=state.pageHistory||["dashboard"];
+    state.pageHistory.push(page);
+    sessionStorage.setItem("hphPageHistory",JSON.stringify(state.pageHistory));
+    if(window.history && !state.isNavigatingFromPop){
+      history.pushState({hphPage:page},"",`#${page}`);
+    }
+  }
+  renderActivePage(page);
+  if(state.currentUser)saveSession();
+}
+function setupBrowserBackHandling(){
+  try{
+    const saved=JSON.parse(sessionStorage.getItem("hphPageHistory")||"[]");
+    state.pageHistory=saved.length?saved:["dashboard"];
+  }catch(e){state.pageHistory=["dashboard"];}
+  if(!history.state||!history.state.hphApp){
+    history.replaceState({hphApp:true,hphPage:state.activePage||"dashboard"},"",`#${state.activePage||"dashboard"}`);
+  }
+}
+window.addEventListener("popstate",event=>{
+  if(!state.currentUser)return;
+  state.pageHistory=state.pageHistory&&state.pageHistory.length?state.pageHistory:["dashboard"];
+  if((state.activePage||"dashboard")!=="dashboard" && state.pageHistory.length>1){
+    state.pageHistory.pop();
+    const target=state.pageHistory[state.pageHistory.length-1]||"dashboard";
+    sessionStorage.setItem("hphPageHistory",JSON.stringify(state.pageHistory));
+    state.isNavigatingFromPop=true;
+    goPage(target,{fromBack:true});
+    state.isNavigatingFromPop=false;
+    history.pushState({hphApp:true,hphPage:target},"",`#${target}`);
+    return;
+  }
+  if((state.activePage||"dashboard")==="dashboard"){
+    state.currentUser=null;
+    clearSession();
+    sessionStorage.removeItem("hphActivePage");
+    sessionStorage.removeItem("hphPageHistory");
+    $("#mainView")?.classList.add("hidden");
+    $("#loginView")?.classList.remove("hidden");
+    history.back();
+  }
+});
 function renderDashboard(){
   if(ensureSecurityDuesForAllSoldPlots()) saveData();
   const clients=state.data.clients;
@@ -1686,5 +1747,5 @@ function setupEvents(){
   on("#clientModal","click",event=>{if(event.target.id==="clientModal")closeClientModal()});
   on("#viewClientModal","click",event=>{if(event.target.id==="viewClientModal")closeViewClientModal()});
 }
-async function init(){if(ensureSecurityDuesForAllSoldPlots()) saveData();else saveData();setupEvents();setRole("user");renderProjectsDropdown();renderProjectsDropdown(state.data.projects[0]?.name||"","#plotProject");renderAvailablePlotSelect();if(!(await restoreSession())){document.getElementById("loginView").classList.remove("hidden");document.getElementById("mainView").classList.add("hidden");renderDashboard()}}
+async function init(){if(ensureSecurityDuesForAllSoldPlots()) saveData();else saveData();setupEvents();setRole("user");renderProjectsDropdown();renderProjectsDropdown(state.data.projects[0]?.name||"","#plotProject");renderAvailablePlotSelect();const restored=await restoreSession();if(restored)setupBrowserBackHandling();if(!restored){document.getElementById("loginView").classList.remove("hidden");document.getElementById("mainView").classList.add("hidden");renderDashboard()}}
 document.addEventListener("DOMContentLoaded",init);

@@ -501,8 +501,8 @@
   }
 
   const oldGoPage = window.goPage || goPage;
-  window.goPage = goPage = function(page){
-    oldGoPage(page);
+  window.goPage = goPage = function(page, options={}){
+    oldGoPage(page, options);
     if(page === "import") renderImportPreview();
   };
 

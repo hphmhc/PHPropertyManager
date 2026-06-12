@@ -176,30 +176,66 @@
     if(first === "note" || first === "notes for this sheet" || first.startsWith("notes for")) return false;
     return cols.some(col => clean(get(row,[col])) !== "");
   }
+  function rowsFromMatrix(matrix, type){
+    const template = IMPORT_TEMPLATES[type];
+    const expected = (template?.columns || []).map(normalizeHeader);
+    let headerIndex = -1;
+    let headerRow = [];
+
+    for(let i=0; i<matrix.length; i++){
+      const row = matrix[i] || [];
+      const normalized = row.map(normalizeHeader);
+      const matches = expected.filter(h => normalized.includes(h)).length;
+      if(matches >= Math.min(2, expected.length)){
+        headerIndex = i;
+        headerRow = row.map(clean);
+        break;
+      }
+    }
+
+    if(headerIndex === -1){
+      throw new Error(`Could not find the column header row for ${template?.title || type}. Make sure this sheet has headings like: ${(template?.columns || []).slice(0,3).join(", ")}.`);
+    }
+
+    const rows = [];
+    for(let r = headerIndex + 1; r < matrix.length; r++){
+      const values = matrix[r] || [];
+      const obj = {};
+      headerRow.forEach((h, i) => {
+        if(h) obj[h] = values[i] ?? "";
+      });
+      if(isDataRow(type, obj)) rows.push(obj);
+    }
+    return rows;
+  }
+
   async function parseFile(file, type){
     if(!file) return [];
     const name=file.name.toLowerCase();
+
     if(name.endsWith(".csv")){
-      return parseCSV(await file.text()).filter(row => isDataRow(type,row));
+      const csvRows = parseCSV(await file.text()).filter(row => isDataRow(type,row));
+      return csvRows;
     }
+
     if(name.endsWith(".xlsx") || name.endsWith(".xls")){
       if(!window.XLSX) throw new Error("Excel parser is not loaded. Check internet connection and refresh.");
       const buf = await file.arrayBuffer();
-      const workbook = XLSX.read(buf, {type:"array", cellDates:false});
+      const workbook = XLSX.read(buf, {type:"array", cellDates:false, raw:true});
       const expectedSheet = IMPORT_TEMPLATES[type]?.sheetName;
-      let sheetName = workbook.SheetNames.find(s => low(s) === low(expectedSheet)) || workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find(s => low(s) === low(expectedSheet)) || workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      // The PH import workbook has title/instruction rows first and real column headers on row 4.
-      // If we read from row 1, Excel treats the title as the header and preview becomes empty.
-      let rows = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:true, range:3});
-      rows = rows.filter(row => isDataRow(type,row));
-      // Fallback for plain Excel files where headers are already on row 1.
-      if(!rows.length){
-        rows = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:true});
-        rows = rows.filter(row => isDataRow(type,row));
-      }
+      if(!sheet) throw new Error(`Could not find sheet: ${expectedSheet}.`);
+
+      const matrix = XLSX.utils.sheet_to_json(sheet, {header:1, defval:"", raw:true});
+      const rows = rowsFromMatrix(matrix, type);
+
+      const status=el("importStatus");
+      if(status) status.textContent = `${file.name} loaded. Reading sheet "${sheetName}". Found ${rows.length} row(s). Click Validate Preview before importing.`;
+
       return rows;
     }
+
     throw new Error("Please choose a CSV or Excel file.");
   }
 
@@ -394,7 +430,7 @@
     const columns = template.columns;
     head.innerHTML = `<tr>${columns.map(c=>`<th>${escapeHTML(c)}</th>`).join("")}</tr>`;
     const rows = importedRows.slice(0,50);
-    body.innerHTML = rows.length ? rows.map(row=>`<tr>${columns.map(c=>`<td>${escapeHTML(get(row,[c]))}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${columns.length}" class="empty-state">No rows loaded yet.</td></tr>`;
+    body.innerHTML = rows.length ? rows.map(row=>`<tr>${columns.map(c=>`<td>${escapeHTML(get(row,[c]))}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${columns.length}" class="empty-state">No rows loaded yet. Choose the Excel file after selecting the correct Import Type.</td></tr>`;
     if(summary) summary.textContent = importedRows.length ? `${importedRows.length} row(s) loaded. ${result.staged?.length||0} valid row(s).` : "Upload a template file to preview rows before importing.";
     const messages=[...(result.errors||[]), ...(result.warnings||[])];
     if(errorsBox){

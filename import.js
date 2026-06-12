@@ -323,7 +323,7 @@
     return {errors,warnings,staged};
   }
 
-  function applyImport(type, staged){
+  async function applyImport(type, staged){
     const now = new Date().toISOString();
     const ensureProject = (name)=>{
       let p=findProject(name);
@@ -406,19 +406,27 @@
       }
     });
     state.data = HPHStorage.normalize(state.data);
-    saveData();
+    // Do not call saveData() here, because saveData() schedules a background Supabase sync.
+    // Import already needs a direct save. Running both at the same time can cause duplicate primary-key errors.
+    HPHStorage.save(state.data);
+
     if(state.onlineMode && window.HPHSupabase?.ready){
-      HPHSupabase.saveAll(state.data).then(async()=>{
-        state.data=await HPHSupabase.loadAll();
+      try{
+        state.remoteSaveInFlight = true;
+        state.remoteSaveQueued = false;
+        clearTimeout(state.remoteSaveTimer);
+        await HPHSupabase.saveAll(state.data);
+        state.data = await HPHSupabase.loadAll();
         HPHStorage.save(state.data);
-        renderDashboard(); renderClients(); renderPlots(); renderSellers(); renderReports();
-      }).catch(err=>{
+      }catch(err){
         console.error("Import Supabase save failed:", err);
         alert("Import saved locally but online database sync failed: " + (err.message || err));
-      });
-    }else{
-      renderDashboard(); renderClients(); renderPlots(); renderSellers(); renderReports();
+      }finally{
+        state.remoteSaveInFlight = false;
+      }
     }
+
+    renderDashboard(); renderClients(); renderPlots(); renderSellers(); renderReports();
   }
 
   function renderImportPreview(){
@@ -479,8 +487,15 @@
       if(!validated || validated.errors.length) return;
       const type=el("importTypeSelect")?.value || "plots";
       if(!confirm(`Import ${validated.staged.length} valid ${IMPORT_TEMPLATES[type].title} row(s)? Download a backup first if this is important data.`)) return;
-      applyImport(type, validated.staged);
-      alert("Import finished. Check the related page and download a backup.");
+      el("runImportBtn").disabled = true;
+      applyImport(type, validated.staged).then(()=>{
+        alert("Import finished. Check the related page and download a backup.");
+        el("runImportBtn").disabled = false;
+      }).catch(err=>{
+        console.error("Import failed:", err);
+        alert("Import failed: " + (err.message || err));
+        el("runImportBtn").disabled = false;
+      });
     });
     renderImportPreview();
   }

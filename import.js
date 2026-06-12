@@ -189,8 +189,16 @@
       const expectedSheet = IMPORT_TEMPLATES[type]?.sheetName;
       let sheetName = workbook.SheetNames.find(s => low(s) === low(expectedSheet)) || workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:true});
-      return rows.filter(row => isDataRow(type,row));
+      // The PH import workbook has title/instruction rows first and real column headers on row 4.
+      // If we read from row 1, Excel treats the title as the header and preview becomes empty.
+      let rows = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:true, range:3});
+      rows = rows.filter(row => isDataRow(type,row));
+      // Fallback for plain Excel files where headers are already on row 1.
+      if(!rows.length){
+        rows = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:true});
+        rows = rows.filter(row => isDataRow(type,row));
+      }
+      return rows;
     }
     throw new Error("Please choose a CSV or Excel file.");
   }

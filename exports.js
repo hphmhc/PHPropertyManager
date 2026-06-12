@@ -11,7 +11,7 @@ const HPHExports={
     return clean;
   },
   downloadBackup(data){
-    const backup={app:"PH Estate Manager",version:"stage-15.9",createdAt:new Date().toISOString(),data:this.sanitizeBackupData(data)};
+    const backup={app:"PH Estate Manager",version:"stage-15.10",createdAt:new Date().toISOString(),data:this.sanitizeBackupData(data)};
     const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json;charset=utf-8"});
     const stamp=new Date().toISOString().slice(0,10);
     this.downloadBlob(blob,`PH_Estate_Manager_Backup_${stamp}.json`);

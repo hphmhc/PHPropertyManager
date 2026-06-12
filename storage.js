@@ -34,6 +34,15 @@ function sellerToRow(s){return {id:s.id,name_en:s.nameEn||"",name_ur:s.nameUr||"
 function paymentToRow(p){return {id:p.id,client_id:p.clientId,plot_id:p.plotId,type:p.type||"cash",amount:Number(p.amount||0),date:p.date||new Date().toISOString().slice(0,10),note:p.note||"",exchange_item:p.exchangeItem||"",created_at:hphIso(p.createdAt)}}
 function dueToRow(d){return {id:d.id,client_id:d.clientId,plot_id:d.plotId,type:d.type||"",amount:Number(d.amount||0),discount_amount:Number(d.discountAmount||0),date:d.date||"",paid:!!d.paid,paid_date:d.paidDate||null,status:d.status||"unpaid",note:d.note||"",created_at:hphIso(d.createdAt),updated_at:hphIso(d.updatedAt)}}
 
+
+function hphUniqueById(items){
+  const map = new Map();
+  (items || []).forEach(item => {
+    if(item && item.id) map.set(item.id, item);
+  });
+  return Array.from(map.values());
+}
+
 const HPHSupabase={
   client:null,
   ready:false,

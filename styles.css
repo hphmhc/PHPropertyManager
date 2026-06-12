@@ -504,3 +504,55 @@ img{max-width:100%;height:auto;}
   .sidebar-brand .brand-mark.small.logo-mark{width:34px;height:34px;min-width:34px;}
   .login-screen::before{background-size:380px;opacity:.12;}
 }
+
+
+/* Stage 15.4 bulk import */
+.import-layout{
+  display:grid;
+  grid-template-columns:320px 1fr;
+  gap:18px;
+  padding:18px;
+}
+.import-controls{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.import-controls label{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  font-size:.82rem;
+  font-weight:800;
+  text-transform:uppercase;
+  color:var(--muted);
+  letter-spacing:.03em;
+}
+.import-actions{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.import-status{
+  border:1px solid var(--line);
+  background:#fbfdfb;
+  border-radius:14px;
+  padding:12px;
+  line-height:1.45;
+}
+.import-errors{
+  background:#fef2f2;
+  color:#991b1b;
+  border:1px solid #fecaca;
+  border-radius:14px;
+  padding:12px;
+  margin:12px 0;
+  max-height:220px;
+  overflow:auto;
+}
+.import-preview h3{margin:0 0 4px;}
+#importPreviewTable{min-width:900px;}
+#importPreviewTable .bad-cell{background:#fef2f2;color:#991b1b;font-weight:700;}
+@media(max-width:1000px){
+  .import-layout{grid-template-columns:1fr;}
+}

@@ -48,6 +48,7 @@
           <button class="nav-item" data-page="plots">Plots</button>
           <button class="nav-item" data-page="documents">Documents</button>
           <button class="nav-item" data-page="reports">Reports</button>
+          <button class="nav-item admin-only hidden" data-page="import">Import Data</button>
           <button class="nav-item admin-only hidden" data-page="sellers">Sellers</button>
           <button class="nav-item admin-only hidden" data-page="users">Users</button>
         </nav>
@@ -282,6 +283,69 @@
             <div class="table-wrap"><table id="reportPreviewTable"><thead></thead><tbody></tbody></table></div>
           </div>
         </section>
+
+        <section id="page-import" class="page">
+          <div class="page-header">
+            <div>
+              <h2>Import Data</h2>
+              <p class="muted">Bulk import Excel or CSV data into PH Estate Manager. Use this carefully and keep a backup before importing.</p>
+            </div>
+            <div class="header-actions">
+              <button id="downloadImportTemplateBtn" class="btn secondary" type="button">Download Template</button>
+              <button id="chooseImportFileBtn" class="btn primary" type="button">Choose File</button>
+              <input id="importFileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" />
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="import-layout">
+              <div class="import-controls">
+                <label>Import Type
+                  <select id="importTypeSelect">
+                    <option value="projects">Projects</option>
+                    <option value="plots">Plots</option>
+                    <option value="clients">Clients</option>
+                    <option value="sellers">Sellers</option>
+                    <option value="sales">Client Plot Sales / Links</option>
+                    <option value="payments">Payments</option>
+                    <option value="dues">Dues</option>
+                  </select>
+                </label>
+
+                <div class="hint-box">
+                  <strong>Safe import order:</strong><br />
+                  1. Projects<br />
+                  2. Plots<br />
+                  3. Clients<br />
+                  4. Client Plot Sales / Links<br />
+                  5. Payments<br />
+                  6. Dues
+                </div>
+
+                <div id="importStatus" class="import-status muted">No file selected.</div>
+
+                <div class="import-actions">
+                  <button id="validateImportBtn" class="btn secondary" type="button">Validate Preview</button>
+                  <button id="runImportBtn" class="btn primary" type="button" disabled>Import Valid Rows</button>
+                </div>
+              </div>
+
+              <div class="import-preview">
+                <h3>Preview</h3>
+                <p class="muted" id="importPreviewSummary">Upload a template file to preview rows before importing.</p>
+                <div id="importErrors" class="import-errors hidden"></div>
+                <div class="table-wrap">
+                  <table id="importPreviewTable">
+                    <thead id="importPreviewHead"></thead>
+                    <tbody id="importPreviewBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
         <section id="page-sellers" class="page">
           <div class="page-header">
             <div><h2>Sellers</h2><p class="muted">Admin-only seller records used later in document generation.</p></div>
@@ -458,6 +522,6 @@
     </div>
 
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="storage.js"></script><script src="exports.js"></script><script src="documents.js"></script><script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="storage.js"></script><script src="exports.js"></script><script src="documents.js"></script><script src="app.js"></script><script src="import.js"></script>
 </body>
 </html>
